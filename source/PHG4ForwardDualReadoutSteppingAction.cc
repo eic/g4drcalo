@@ -299,9 +299,10 @@ bool PHG4ForwardDualReadoutSteppingAction::UserSteppingAction(const G4Step* aSte
       G4int pstype = aTrack->GetCreatorProcess()->GetProcessSubType();
       // cout << aTrack->GetCreatorProcess()->GetProcessName() << endl;
       //scintillation photons
-      if(ptype == fScinType && pstype == fScinSubType) fNscin++;
+      G4Material* prevMaterial = aStep->GetPreStepPoint()->GetMaterial();
+      if(ptype == fScinType && pstype == fScinSubType && (prevMaterial->GetName().find("G4_POLYSTYRENE") != std::string::npos)){ fNscin++;}
       //Cerenkov photons
-      if(ptype == fCerenkovType && pstype == fCerenkovSubType) fNcerenkov++;
+      if(ptype == fCerenkovType && pstype == fCerenkovSubType && (prevMaterial->GetName().find("PMMA") != std::string::npos)){ fNcerenkov++;}
     //   if(aTrack->GetParentID() > 0)
     // {
     //   if(aTrack->GetCreatorProcess()->GetProcessName().find("enkov") != string::npos)cout << aTrack->GetCreatorProcess()->GetProcessName() << endl;
@@ -312,6 +313,11 @@ bool PHG4ForwardDualReadoutSteppingAction::UserSteppingAction(const G4Step* aSte
     // cout << __LINE__ << endl;
     //   cout << hit->get_property_float(PHG4Hit::PROPERTY::scint_gammas)<<  "\t" << hit->get_property_float(PHG4Hit::PROPERTY::scint_gammas) << endl;
     // cout << __LINE__ << endl;
+    // G4Material* nextMaterial = aStep->GetPostStepPoint()->GetMaterial();
+    // string materialstr = nextMaterial->GetName();
+    // string materialstr2 = prevMaterial->GetName();
+    // if(materialstr.find("G4_AIR") == std::string::npos)cout << materialstr << endl;;
+    // if(materialstr2.find("G4_AIR") == std::string::npos)cout << "\t" << materialstr2 << endl;;
       hit->set_property(PHG4Hit::PROPERTY::scint_gammas,hit->get_property_float(PHG4Hit::PROPERTY::scint_gammas)+ fNscin);
     // cout << __LINE__ << endl;
       hit->set_property(PHG4Hit::PROPERTY::cerenkov_gammas,hit->get_property_float(PHG4Hit::PROPERTY::cerenkov_gammas)+ fNcerenkov);
@@ -459,7 +465,8 @@ int PHG4ForwardDualReadoutSteppingAction::FindTowerIndexFromPosition(G4StepPoint
   int j_0 = 0;  //The j and k indices for the scintillator / tower
   int k_0 = 0;  //The j and k indices for the scintillator / tower
 
-  float twrsize = 1.2; // was 0.3
+  float twrsize = 1.2;//1.2; // was 0.3
+  // float twrsize = 1.2;//1.2; // was 0.3
   float drsize = 220.;
   // G4VPhysicalVolume* tower = touch->GetVolume(1);  //Get the tower solid
   // ParseG4VolumeName(tower, j_0, k_0);

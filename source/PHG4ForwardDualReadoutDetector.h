@@ -81,7 +81,7 @@ class PHG4ForwardDualReadoutDetector : public PHG4Detector
  private:
   G4LogicalVolume *ConstructTower(int type);
   int PlaceTower(G4LogicalVolume *envelope, G4LogicalVolume *tower);
-  int ParseParametersFromTable();
+  int InitDefaultParams();
 
   struct towerposition
   {

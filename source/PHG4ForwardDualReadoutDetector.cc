@@ -81,6 +81,13 @@ int PHG4ForwardDualReadoutDetector::IsInForwardDualReadout(G4VPhysicalVolume* vo
       else
         return 0;
     }
+    else if (volume->GetName().find("cherenkov") != string::npos)
+    {
+      if (_active)
+        return 1;
+      else
+        return 0;
+    }
     /* only record energy in actual absorber- drop energy lost in air gaps inside drcalo envelope */
     else if (volume->GetName().find("absorber") != string::npos)
     {
@@ -107,7 +114,7 @@ void PHG4ForwardDualReadoutDetector::ConstructMe(G4LogicalVolume* logicWorld)
   }
 
   /* Read parameters for detector construction and mappign from file */
-  ParseParametersFromTable();
+  InitDefaultParams();
 
   /* Create the cone envelope = 'world volume' for the crystal calorimeter */
   G4Material* Air = G4Material::GetMaterial("G4_AIR");
@@ -212,7 +219,7 @@ PHG4ForwardDualReadoutDetector::ConstructTower(int type)
 
   /* create logical volume for single tower */
   G4Material* material_air = G4Material::GetMaterial("G4_AIR");
-
+  float distancing = 1.0;
   // 2x2 tower base element
   G4VSolid* single_tower_solid = new G4Box(G4String("single_tower_solid"),
                                           _tower_dx / 2.0,
@@ -233,17 +240,17 @@ PHG4ForwardDualReadoutDetector::ConstructTower(int type)
   G4VSolid* single_cutout_tube  = new G4Tubs(G4String("single_cutout_tube"),
                                             0,
                                             ( diameter_fiber + airgap ) / 2.0,
-                                            _tower_dz / 1.0,
+                                            1.03 * _tower_dz / 1.0, //make it 1.03 times longer to ensure full cutout
                                             0.,2*M_PI*rad);
   // notch cutout
   G4VSolid* single_cutout_box = new G4Box(G4String("single_cutout_box"),
                                           ( diameter_fiber + airgap ) / 2.0,
-                                          ( diameter_fiber + airgap ) / 4.0,
-                                          _tower_dz / 1.0);
+                                          1.03 * ( diameter_fiber + airgap ) / 4.0, //make it 1.03 times longer to ensure full cutout
+                                          1.03 * _tower_dz / 1.0);
   // absorber base object
   G4VSolid* solid_absorber_temp = new G4Box(G4String("solid_absorber_temp"),
-                                          _tower_dx / 2.0,
-                                          _tower_dy / 2.0,
+                                          distancing*_tower_dx / 2.0,
+                                          distancing*_tower_dy / 2.0,
                                           _tower_dz / 2.0);
   // cut out four fiber holes
   G4VSolid* solid_absorber = new G4SubtractionSolid(G4String("solid_absorber_temp_f1"), solid_absorber_temp, single_cutout_tube
@@ -369,7 +376,13 @@ PHG4ForwardDualReadoutDetector::ConstructTower(int type)
   //   surface->SetMaterialPropertiesTable(surfmat);
   // }
 
-  G4Material* material_cherenkov = G4Material::GetMaterial("PMMA");
+  // G4Material* material_cherenkov = G4Material::GetMaterial("PMMA");
+	G4double density;
+	G4int ncomponents, natoms;
+  G4Material* material_cherenkov = new G4Material("PMMA", density = 1.18 * g / cm3, ncomponents = 3);
+		material_cherenkov->AddElement(G4Element::GetElement("C"), 3.6 / (3.6 + 5.7 + 1.4));
+		material_cherenkov->AddElement(G4Element::GetElement("H"), 5.7 / (3.6 + 5.7 + 1.4));
+		material_cherenkov->AddElement(G4Element::GetElement("O"), 1.4 / (3.6 + 5.7 + 1.4));
 
 
 const G4int nEntries = 31;
@@ -458,149 +471,22 @@ const G4int nEntries = 31;
 }
 
 
-int PHG4ForwardDualReadoutDetector::ParseParametersFromTable()
+int PHG4ForwardDualReadoutDetector::InitDefaultParams()
 {
-  /* Open the datafile, if it won't open return an error */
-  ifstream istream_mapping;
-  if (!istream_mapping.is_open())
-  {
-    istream_mapping.open(_mapping_tower_file.c_str());
-    if (!istream_mapping)
-    {
-      cerr << "ERROR in PHG4ForwardDualReadoutDetector: Failed to open mapping file " << _mapping_tower_file << endl;
-      exit(1);
-    }
-  }
-
-  /* loop over lines in file */
-  string line_mapping;
-  while (getline(istream_mapping, line_mapping))
-  {
-    /* Skip lines starting with / including a '#' */
-    if (line_mapping.find("#") != string::npos)
-    {
-      if (Verbosity() > 0)
-      {
-        cout << "PHG4ForwardDualReadoutDetector: SKIPPING line in mapping file: " << line_mapping << endl;
-      }
-      continue;
-    }
-
-    istringstream iss(line_mapping);
-
-    /* If line starts with keyword Tower, add to tower positions */
-    if (line_mapping.find("Tower ") != string::npos)
-    {
-      unsigned idx_j, idx_k, idx_l;
-      G4double pos_x, pos_y, pos_z;
-      G4double size_x, size_y, size_z;
-      G4double rot_x, rot_y, rot_z;
-      int type;
-      string dummys;
-
-      /* read string- break if error */
-      if (!(iss >> dummys >> type >> idx_j >> idx_k >> idx_l >> pos_x >> pos_y >> pos_z >> size_x >> size_y >> size_z >> rot_x >> rot_y >> rot_z))
-      {
-        cerr << "ERROR in PHG4ForwardDualReadoutDetector: Failed to read line in mapping file " << _mapping_tower_file << endl;
-        exit(1);
-      }
-
-      /* Construct unique name for tower */
-      /* Mapping file uses cm, this class uses mm for length */
-      ostringstream towername;
-      towername.str("");
-      towername << _towerlogicnameprefix << "_t_" << type << "_j_" << idx_j << "_k_" << idx_k;
-
-      /* Add Geant4 units */
-      pos_x = pos_x * cm;
-      pos_y = pos_y * cm;
-      pos_z = pos_z * cm;
-
-      /* insert tower into tower map */
-      towerposition tower_new;
-      tower_new.x = pos_x;
-      tower_new.y = pos_y;
-      tower_new.z = pos_z;
-      tower_new.idx_j = idx_j;
-      tower_new.idx_k = idx_k;
-      tower_new.type = type;
-      _map_tower.insert(make_pair(towername.str(), tower_new));
-    }
-    else
-    {
-      /* If this line is not a comment and not a tower, save parameter as string / value. */
-      string parname;
-      G4double parval;
-
-      /* read string- break if error */
-      if (!(iss >> parname >> parval))
-      {
-        cerr << "ERROR in PHG4ForwardDualReadoutDetector: Failed to read line in mapping file " << _mapping_tower_file << endl;
-        exit(1);
-      }
-
-      _map_global_parameter.insert(make_pair(parname, parval));
-    }
-  }
-
-  /* Update member variables for global parameters based on parsed parameter file */
-  std::map<string, G4double>::iterator parit;
-
-  parit = _map_global_parameter.find("Gtower_dx");
-  if (parit != _map_global_parameter.end())
-    _tower_dx = parit->second * cm;
-
-  parit = _map_global_parameter.find("Gtower_dy");
-  if (parit != _map_global_parameter.end())
-    _tower_dy = parit->second * cm;
-
-  parit = _map_global_parameter.find("Gtower_dz");
-  if (parit != _map_global_parameter.end())
-    _tower_dz = parit->second * cm;
-
-  parit = _map_global_parameter.find("Gr1_inner");
-  if (parit != _map_global_parameter.end())
-    _rMin1 = parit->second * cm;
-
-  parit = _map_global_parameter.find("Gr1_outer");
-  if (parit != _map_global_parameter.end())
-    _rMax1 = parit->second * cm;
-
-  parit = _map_global_parameter.find("Gr2_inner");
-  if (parit != _map_global_parameter.end())
-    _rMin2 = parit->second * cm;
-
-  parit = _map_global_parameter.find("Gr2_outer");
-  if (parit != _map_global_parameter.end())
-    _rMax2 = parit->second * cm;
-
-  parit = _map_global_parameter.find("Gdz");
-  if (parit != _map_global_parameter.end())
-    _dZ = parit->second * cm;
-
-  parit = _map_global_parameter.find("Gx0");
-  if (parit != _map_global_parameter.end())
-    _place_in_x = parit->second * cm;
-
-  parit = _map_global_parameter.find("Gy0");
-  if (parit != _map_global_parameter.end())
-    _place_in_y = parit->second * cm;
-
-  parit = _map_global_parameter.find("Gz0");
-  if (parit != _map_global_parameter.end())
-    _place_in_z = parit->second * cm;
-
-  parit = _map_global_parameter.find("Grot_x");
-  if (parit != _map_global_parameter.end())
-    _rot_in_x = parit->second;
-
-  parit = _map_global_parameter.find("Grot_y");
-  if (parit != _map_global_parameter.end())
-    _rot_in_y = parit->second;
-
-  parit = _map_global_parameter.find("Grot_z");
-  if (parit != _map_global_parameter.end())
-    _rot_in_z = parit->second;
+    _tower_dx = 0.3 * cm;
+    _tower_dy = 0.3 * cm;
+    _tower_dz = 150 * cm; //was 150
+    _rMin1 = 20 * cm;
+    _rMax1 = 220 * cm; //was220
+    _rMin2 = 20 * cm;
+    _rMax2 = 220 * cm; //was220
+    _dZ = 150 * cm; //was 150
+    _place_in_x = 0 * cm;
+    _place_in_y = 0 * cm;
+    _place_in_z = 375 * cm;
+    _rot_in_x = 0;
+    _rot_in_y = 0;
+    _rot_in_z = 0;
 
   return 0;
 }

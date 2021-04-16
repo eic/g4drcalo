@@ -139,43 +139,26 @@ PHG4Detector* PHG4ForwardDualReadoutSubsystem::GetDetector() const
 
 void PHG4ForwardDualReadoutSubsystem::SetDefaultParameters()
 {
-  // set_default_double_param("place_x", 0.);
-  // set_default_double_param("place_y", 0.);
-  // set_default_double_param("place_z", 400.);
-  // set_default_double_param("tower_dx", 10.);
-  // set_default_double_param("tower_dy", 10.);
-  // set_default_double_param("tower_dz", 100.);
-  // set_default_double_param("dz", 100.);
-  // set_default_double_param("rMin1", 5.);
-  // set_default_double_param("rMax1", 262.);
-  // set_default_double_param("rMin2", 5.);
-  // set_default_double_param("rMax2", 336.9);
+  set_default_double_param("place_x", 0.);
+  set_default_double_param("place_y", 0.);
+  set_default_double_param("place_z", 375.);
+  set_default_double_param("tower_dx", 0.3);
+  set_default_double_param("tower_dy", 0.3);
+  set_default_double_param("tower_dz", 150.);
+  set_default_double_param("dz", 150.);
+  set_default_double_param("rMin1", 20.);
+  set_default_double_param("rMax1", 220.);
+  set_default_double_param("rMin2", 20.);
+  set_default_double_param("rMax2", 220.);
   // set_default_double_param("wls_dw", 0.3);
   // set_default_double_param("support_dw", 0.2);
-  // set_default_double_param("rot_x", 0.);
-  // set_default_double_param("rot_y", 0.);
-  // set_default_double_param("rot_z", 0.);
+  set_default_double_param("rot_x", 0.);
+  set_default_double_param("rot_y", 0.);
+  set_default_double_param("rot_z", 0.);
   // set_default_double_param("thickness_absorber", 2.);
   // set_default_double_param("thickness_scintillator", 0.231);
-
-  // std::ostringstream mappingfilename;
-  // const char* calibroot = getenv("CALIBRATIONROOT");
-  // if (calibroot)
-  // {
-  //   mappingfilename << calibroot;
-  // }
-  // else
-  // {
-  //   std::cout << "no CALIBRATIONROOT environment variable" << std::endl;
-  //   gSystem->Exit(1);
-  // }
-
-  // mappingfilename << "/ForwardHcal/mapping/towerMap_FHCAL_v005.txt";
-  // set_default_string_param("mapping_file", mappingfilename.str());
-  // set_default_string_param("mapping_file_md5", PHG4Utils::md5sum(mappingfilename.str()));
   // set_default_string_param("scintillator", "G4_POLYSTYRENE");
   // set_default_string_param("absorber", "G4_Fe");
   // set_default_string_param("support", "G4_Fe");
-
   return;
 }

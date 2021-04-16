@@ -27,6 +27,8 @@
 # list of available graphics systems at some point.
 #/vis/open OGLIX
 /vis/open OGL 1200x900-0+0
+/vis/viewer/set/lineSegmentsPerCircle 10
+#/vis/viewer/set/style cloud
 # increase display limit for more complex detectors
 /vis/ogl/set/displayListLimit 500000
 /vis/viewer/set/viewpointThetaPhi 260 -40
